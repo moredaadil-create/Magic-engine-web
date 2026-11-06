@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#080d18"><title>MAGIC ENGINE — Web Editor</title>
+<style>
+:root{--bg:#080d18;--panel:#101a2b;--panel2:#142238;--line:#263a56;--cyan:#55d9ff;--text:#e9f3ff;--muted:#91a7c2;--orange:#ffb45e}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:14px system-ui,Arial}
+#app{height:100dvh;display:grid;grid-template-rows:54px 1fr 58px}
+header{display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:#0c1422;border-bottom:1px solid var(--line);gap:8px}
+.brand{font-weight:900;letter-spacing:1.5px;color:#fff}.brand span{color:var(--cyan)}.sub{font-size:10px;color:var(--muted);letter-spacing:2px}
+button{border:1px solid var(--line);background:#17263b;color:var(--text);padding:9px 11px;border-radius:9px;font-weight:650;cursor:pointer}button:active{transform:scale(.97)}button.primary{background:#087ca1;border-color:#20bce9}button.active{border-color:var(--cyan);color:var(--cyan)}
+#workspace{min-height:0;display:grid;grid-template-columns:190px 1fr 210px}
+.panel{background:var(--panel);min-width:0;overflow:auto;border-right:1px solid var(--line)}#right{border-right:0;border-left:1px solid var(--line)}
+.panel h3{font-size:11px;letter-spacing:1.5px;color:var(--muted);margin:13px 12px 8px}
+.toolgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 9px}
+.toolgrid button{font-size:12px;padding:10px 4px}
+#tree{padding:0 8px 14px}.treeitem{display:block;width:100%;text-align:left;margin:3px 0;padding:8px;font-size:12px;background:transparent;border-color:transparent}.treeitem.sel{background:#17344b;border-color:#24617d;color:var(--cyan)}
+#viewport{position:relative;min-width:0;min-height:0;background:radial-gradient(ellipse at 50% 35%,#172b48,#080e1a 75%);touch-action:none}canvas{display:block;width:100%;height:100%}
+#hint{position:absolute;left:10px;top:10px;color:#a9c3df;background:#08111dcc;border:1px solid #28405c;border-radius:8px;padding:7px 9px;font-size:11px;pointer-events:none}
+#toast{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:#0e2438;border:1px solid #27617c;border-radius:9px;padding:8px 12px;font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none}
+.field{padding:0 12px 9px}.field label{display:block;color:var(--muted);font-size:11px;margin-bottom:4px}.field input{width:100%;background:#091321;border:1px solid var(--line);border-radius:7px;color:#fff;padding:8px;font-size:12px}
+.xyz{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.xyz input{min-width:0}
+#bottom{display:flex;align-items:center;justify-content:space-around;background:#0c1422;border-top:1px solid var(--line);padding:5px;gap:5px}#bottom button{flex:1;font-size:11px;padding:10px 3px}
+#status{font-size:10px;color:var(--muted);padding:7px 12px;border-top:1px solid var(--line)}
+@media(max-width:700px){#workspace{grid-template-columns:112px 1fr 126px}.panel h3{font-size:9px;margin:10px 7px 6px}.toolgrid{gap:4px;padding:0 5px}.toolgrid button{font-size:10px;padding:9px 2px}.field{padding:0 7px 8px}.field input{padding:7px 4px;font-size:11px}.treeitem{font-size:10px;padding:7px 4px}header{padding:0 7px}.brand{font-size:13px}header button{font-size:10px;padding:8px 7px}.sub{display:none}}
+@media(max-width:390px){#workspace{grid-template-columns:92px 1fr 108px}.toolgrid{grid-template-columns:1fr}.panel h3{letter-spacing:.5px}}
+</style>
+</head>
+<body>
+<div id="app">
+<header><div><div class="brand">MAGIC <span>ENGINE</span></div><div class="sub">CREATE WORLDS. BUILD MAGIC.</div></div><div style="display:flex;gap:6px"><button id="save">SAVE</button><button id="play" class="primary">▶ PLAY</button></div></header>
+<div id="workspace">
+<aside class="panel"><h3>CREATE OBJECT</h3><div class="toolgrid">
+<button data-add="Box">＋ CUBE</button><button data-add="Sphere">＋ SPHERE</button><button data-add="Cylinder">＋ CYLINDER</button><button data-add="Cone">＋ CONE</button><button data-add="Plane">＋ FLOOR</button><button data-add="Torus">＋ TORUS</button>
+</div><h3>SCENE HIERARCHY</h3><div id="tree"></div><div id="status">WEB EDITOR · READY</div></aside>
+<main id="viewport"><div id="hint">Drag: orbit · Pinch: zoom · Tap object: select</div><div id="toast"></div></main>
+<aside class="panel" id="right"><h3>TRANSFORM</h3><div class="field"><label>OBJECT NAME</label><input id="objname" value="—" disabled></div>
+<div class="field"><label>POSITION</label><div class="xyz"><input id="px" type="number" step=".1"><input id="py" type="number" step=".1"><input id="pz" type="number" step=".1"></div></div>
+<div class="field"><label>ROTATION (DEG)</label><div class="xyz"><input id="rx" type="number" step="5"><input id="ry" type="number" step="5"><input id="rz" type="number" step="5"></div></div>
+<div class="field"><label>SCALE</label><div class="xyz"><input id="sx" type="number" step=".1" min=".1"><input id="sy" type="number" step=".1" min=".1"><input id="sz" type="number" step=".1" min=".1"></div></div>
+<h3>EDIT TOOLS</h3><div class="toolgrid"><button data-mode="translate" class="active">MOVE</button><button data-mode="rotate">ROTATE</button><button data-mode="scale">SCALE</button><button id="delete">DELETE</button><button id="undo">UNDO</button><button id="redo">REDO</button></div>
+</aside>
+</div>
+<footer id="bottom"><button id="home">⌂ RESET VIEW</button><button id="export">EXPORT SCENE</button><button id="import">IMPORT SCENE</button><input type="file" id="file" accept=".json,application/json" hidden></footer>
+</div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
+import {OrbitControls} from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/controls/OrbitControls.js';
+import {TransformControls} from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/controls/TransformControls.js';
+const viewport=document.querySelector('#viewport'), toastEl=document.querySelector('#toast');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x0b1424);scene.fog=new THREE.Fog(0x0b1424,24,70);
+const camera=new THREE.PerspectiveCamera(55,1,.1,500);camera.position.set(8,7,10);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;viewport.appendChild(renderer.domElement);
+const orbit=new OrbitControls(camera,renderer.domElement);orbit.enableDamping=true;orbit.target.set(0,1,0);orbit.maxPolarAngle=Math.PI*.49;
+scene.add(new THREE.HemisphereLight(0xa9d9ff,0x27334a,2));
+const key=new THREE.DirectionalLight(0xffffff,3);key.position.set(6,12,8);key.castShadow=true;scene.add(key);
+const grid=new THREE.GridHelper(40,40,0x2a7394,0x20334c);grid.position.y=0;scene.add(grid);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:0x111c2d,roughness:.95}));floor.rotation.x=-Math.PI/2;floor.position.y=-.012;floor.receiveShadow=true;scene.add(floor);
+const objects=[];let selected=null,mode='translate',playing=false,undoStack=[],redoStack=[];
+const gizmo=new TransformControls(camera,renderer.domElement);scene.add(gizmo.getHelper());gizmo.setMode(mode);gizmo.addEventListener('dragging-changed',e=>orbit.enabled=!e.value);
+gizmo.addEventListener('objectChange',()=>updateInspector());
+function toast(s){toastEl.textContent=s;toastEl.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>toastEl.style.opacity=0,1800)}
+function mat(color){return new THREE.MeshStandardMaterial({color,roughness:.48,metalness:.08})}
+function create(type,record=true){let geo;switch(type){case'Box':geo=new THREE.BoxGeometry(1.5,1.5,1.5);break;case'Sphere':geo=new THREE.SphereGeometry(.85,32,20);break;case'Cylinder':geo=new THREE.CylinderGeometry(.7,.7,1.6,32);break;case'Cone':geo=new THREE.ConeGeometry(.85,1.7,32);break;case'Plane':geo=new THREE.BoxGeometry(8,.12,8);break;case'Torus':geo=new THREE.TorusGeometry(.7,.25,16,48);break}
+const colors=[0x43c8ee,0x8b7cff,0xffad66,0x65d6a2,0xff6d91];const mesh=new THREE.Mesh(geo,mat(colors[objects.length%colors.length]));mesh.name=type+'_'+(objects.length+1);mesh.position.set(0,type==='Plane'?.1:.9,0);mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);objects.push(mesh);if(record)pushUndo();select(mesh);renderTree();return mesh}
+function select(o){selected=o;gizmo.detach();if(o&&!playing)gizmo.attach(o);document.querySelector('#objname').value=o?.name||'—';updateInspector();renderTree()}
+function updateInspector(){if(!selected)return;const p=selected.position,r=selected.rotation,s=selected.scale;['x','y','z'].forEach((a,i)=>{document.querySelector('#p'+a).value=p[a].toFixed(2);document.querySelector('#r'+a).value=THREE.MathUtils.radToDeg(r[a]).toFixed(1);document.querySelector('#s'+a).value=s[a].toFixed(2)})}
+['p','r','s'].forEach((prefix)=>['x','y','z'].forEach(axis=>document.querySelector('#'+prefix+axis).addEventListener('change',e=>{if(!selected)return;const v=Number(e.target.value)||0;if(prefix==='p')selected.position[axis]=v;if(prefix==='r')selected.rotation[axis]=THREE.MathUtils.degToRad(v);if(prefix==='s')selected.scale[axis]=Math.max(.1,v);pushUndo(false)})));
+function renderTree(){const el=document.querySelector('#tree');el.innerHTML='';objects.forEach(o=>{const b=document.createElement('button');b.className='treeitem'+(o===selected?' sel':'');b.textContent='◇ '+o.name;b.onclick=()=>select(o);el.appendChild(b)})}
+function snapshot(){return objects.map(o=>({name:o.name,type:o.geometry.type,position:o.position.toArray(),rotation:o.rotation.toArray(),scale:o.scale.toArray(),color:o.material.color.getHex()}))}
+function pushUndo(save=true){if(save){undoStack.push(JSON.stringify(snapshot()));if(undoStack.length>40)undoStack.shift();redoStack=[]}}
+function restore(data){objects.slice().forEach(o=>scene.remove(o));objects.length=0;data.forEach(d=>{let type=d.name.split('_')[0];let o=create(type,false);o.name=d.name;o.position.fromArray(d.position);o.rotation.fromArray(d.rotation);o.scale.fromArray(d.scale);o.material.color.setHex(d.color)});select(objects.at(-1)||null);renderTree()}
+function download(name,data){const a=document.createElement('a'),url=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
+document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>create(b.dataset.add));
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;gizmo.setMode(mode);document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('active',x===b))});
+document.querySelector('#delete').onclick=()=>{if(!selected)return;pushUndo();scene.remove(selected);objects.splice(objects.indexOf(selected),1);select(objects.at(-1)||null);renderTree();toast('Object deleted')};
+document.querySelector('#undo').onclick=()=>{if(!undoStack.length)return toast('Nothing to undo');redoStack.push(JSON.stringify(snapshot()));restore(JSON.parse(undoStack.pop()))};
+document.querySelector('#redo').onclick=()=>{if(!redoStack.length)return toast('Nothing to redo');undoStack.push(JSON.stringify(snapshot()));restore(JSON.parse(redoStack.pop()))};
+document.querySelector('#save').onclick=()=>{download('magic-engine-scene.json',JSON.stringify({engine:'MAGIC ENGINE',version:'Web Preview 0.1',objects:snapshot()},null,2));toast('Scene exported as JSON')};
+document.querySelector('#export').onclick=()=>document.querySelector('#save').click();
+document.querySelector('#import').onclick=()=>document.querySelector('#file').click();
+document.querySelector('#file').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());restore(d.objects||d);toast('Scene imported')}catch{toast('Invalid scene file')}};
+document.querySelector('#play').onclick=()=>{playing=!playing;gizmo.detach();orbit.enabled=true;document.querySelector('#play').textContent=playing?'■ STOP':'▶ PLAY';document.querySelector('#play').classList.toggle('primary',!playing);if(!playing&&selected)gizmo.attach(selected);toast(playing?'Play preview enabled':'Editor mode')};
+document.querySelector('#home').onclick=()=>{camera.position.set(8,7,10);orbit.target.set(0,1,0);orbit.update()};
+renderer.domElement.addEventListener('pointerdown',e=>{if(playing)return;const rect=renderer.domElement.getBoundingClientRect(),m=new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-((e.clientY-rect.top)/rect.height)*2+1),ray=new THREE.Raycaster();ray.setFromCamera(m,camera);const hit=ray.intersectObjects(objects)[0];if(hit)select(hit.object)});
+function resize(){const w=viewport.clientWidth,h=viewport.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)}new ResizeObserver(resize).observe(viewport);resize();
+create('Box',false);create('Plane',false);select(objects[0]);undoStack=[];
+function animate(){requestAnimationFrame(animate);orbit.update();renderer.render(scene,camera)}animate();
+</script>
+</body></html>
